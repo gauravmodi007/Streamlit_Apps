@@ -1,0 +1,264 @@
+## Author: Gaurav Modi 
+## Desc: This streamlit App will be helpful in analysis\visulizations of time series data and forecasting 
+
+
+from operator import index
+import streamlit as st
+import plotly.express as px
+from pycaret.regression import setup, compare_models, pull, save_model, load_model
+from pycaret.anomaly import *
+import pandas_profiling
+import pandas as pd
+from streamlit_pandas_profiling import st_profile_report
+import os
+import sweetviz as sv
+
+if os.path.exists('./dataset.csv'):
+    df = pd.read_csv('dataset.csv', index_col=None)
+import pandas as pd
+import numpy as np
+import datetime
+from datetime import datetime as dt
+from prophet import Prophet
+from prophet.plot import add_changepoints_to_plot
+from prophet.utilities import regressor_coefficients
+from prophet.diagnostics import cross_validation, performance_metrics
+from prophet.plot import plot_cross_validation_metric
+from prophet.serialize import model_to_json, model_from_json
+from prophet.plot import plot_forecast_component
+from prophet.plot import plot_plotly
+
+import itertools
+import matplotlib.pyplot as plt
+
+from catboost import CatBoostRegressor
+
+with st.sidebar:
+    ##st.image("data:image/jpeg;base64,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")
+    st.image("https://static.simpplr.com/app-assets/00D4x000004yaOwEAI_00D4x000004yaOwEAI_16153287384313_logo.png")
+    st.title('CAC Forecast App')
+
+    choice = st.radio("Navigation", ["Upload", "Profiling", "Anomaly", "Modelling", "HF_Paid", "MMM CAC Forecast", "Download"])
+    st.info("This project application helps you build and explore your data.")
+
+if choice == "Upload":
+    st.title("Upload Your Dataset")
+    file = st.file_uploader("Upload Your Dataset")
+    if file:
+        df = pd.read_csv(file, index_col = None)
+        df.to_csv('dataset.csv', index = None)
+        st.dataframe(df)
+
+if choice == "Profiling":
+    st.title("Exploratory Data Analysis")
+    chosen_model = st.selectbox('Choose Model', ['ProfileReport','sweetviz','autoviz'])
+    pr = df.profile_report()
+    st_profile_report(pr)
+    export = pr.to_html()
+    st.download_button(label="Download Full Report", data=export, file_name='report.html')
+    #sweet_report = sv.analyze(df)
+    #sweet_report.show_html('sweet_report.html')
+    #profile_df = df.profile_report()
+    #st_profile_report(profile_df)
+
+if choice == "Anomaly":
+    st.title("Anomaly Detection")
+    exp_ano101 = setup(df, normalize = True)
+    setup_df = pull()
+    st.dataframe(setup_df)
+    chosen_model = st.selectbox('Choose Model', models().index)
+    if st.button('Run Modelling'):
+        iforest = create_model(chosen_model)
+        st.write(print(iforest))
+        iforest_results = assign_model(iforest)
+        st.dataframe(iforest_results)
+        plot_model(iforest, plot = 'tsne')
+        #st.pyplot(plot_model(iforest, plot = 'tsne'))
+        #st.plotly_chart(plot_model(iforest, plot = 'tsne'))
+
+
+if choice == "Modelling":
+    from pycaret.regression import setup, compare_models, pull, save_model, load_model
+    chosen_target = st.selectbox('Choose the Target Column', df.columns)
+    if st.button('Run Modelling'):
+        setup(df, target = chosen_target)
+        setup_df = pull()
+        st.dataframe(setup_df)
+        best_model = compare_models()
+        compare_df = pull()
+        st.dataframe(compare_df)
+        save_model(best_model, 'best_model')
+       
+if choice == "HF_Paid":
+    st.header(f'Hello Fresh Paid Forecast')
+    data = df.copy()
+    data["ds"] = pd.to_datetime(data["ds"])
+    data['year_calc'] = data['ds'].dt.year
+    data['quarter_calc'] = data['ds'].dt.quarter
+    data['month_calc'] = data['ds'].dt.month
+    data['week_calc'] = data['ds'].dt.isocalendar().week
+    data = data.query('year_calc <= 2023')
+
+    df = data.query('Brand == "HF" & Marketing_Type == "Paid" & Type == "Actuals"').copy()
+    future = data.query('Brand == "HF" & Marketing_Type == "Paid"').copy()
+    st.dataframe(future)
+   
+    st.subheader("YOY Marketing Spend")
+    # YOY Marketing Spend
+    df = data.query('Brand == "HF" & Marketing_Type == "Paid" ').copy()
+    df['week'] = df['ds'].dt.isocalendar().week
+    df['year']= df['ds'].dt.year
+    fig = px.line(df, x="week", y="Marketing_Amount", color='year', line_dash= 'Type')
+    st.plotly_chart(fig)
+   
+    st.subheader("YOY Discount")
+    # YOY Discount
+    df = data.query('Brand == "HF" & Marketing_Type == "Paid" ').copy()
+    df['week'] = df['ds'].dt.isocalendar().week
+    df['year']= df['ds'].dt.year
+    fig = px.line(df, x="week", y="discount_", color='year', line_dash= 'Type')
+    st.plotly_chart(fig)
+   
+    st.subheader("YOY Conversion")
+    # YOY Discount
+    df = data.query('Brand == "HF" & Marketing_Type == "Paid" ').copy()
+    df['week'] = df['ds'].dt.isocalendar().week
+    df['year']= df['ds'].dt.year
+    fig = px.line(df, x="week", y="Conversion", color='year', line_dash= 'Type')
+    st.plotly_chart(fig)
+   
+   
+    st.subheader(f'What If Analysis')
+    spending = st.slider('Change Marketing Spending?', min_value = -15, value = 0, max_value = 15, step = 1)
+    discount = st.slider('Change Discount?', min_value = -15, value = 0, max_value = 15, step = 1)
+   
+    changepoint_range = st.number_input("changepoint_range", min_value=0.5, max_value=1.0, value=0.8)
+    changepoint_prior_scale = st.number_input("changepoint_prior_scale", min_value=0.05, max_value=1.0, value=0.5)
+    yearly_seasonality = st.number_input("yearly_seasonality", min_value=1, max_value=100, value=10)
+
+   
+    if st.button('Run Forecast'):
+       
+       
+        spct = 1 + (spending/100)
+        dpct = 1 + (discount/100)
+        future["Marketing_Amount"] = np.where(future["Type"] == "Forecast", future["Marketing_Amount"]*spct, future["Marketing_Amount"])
+        future["discount_"] = np.where(future["Type"] == "Forecast", future["discount_"]*spct, future["discount_"])
+
+        m = Prophet(growth='linear' , changepoint_range = 0.81, changepoint_prior_scale = 0.2, yearly_seasonality = 20)
+        m.add_country_holidays(country_name='US')
+        m.add_regressor('Marketing_Amount')
+        m.add_regressor('discount_')
+        m.fit(df)
+        forecast = m.predict(future)
+        add_changepoints_to_plot(m.plot(forecast,figsize=(15, 5)).gca(), m, forecast)
+        future.loc[:,['yhat', 'yhat_lower', 'yhat_upper']] = forecast[['yhat', 'yhat_lower', 'yhat_upper']].values
+       
+       
+        fig = m.plot(forecast)
+        a = add_changepoints_to_plot(fig.gca(), m, forecast)
+       
+        import plotly.graph_objects as go
+        fig = go.Figure()
+       
+        st.subheader(f'Cross Validation MAPE')
+        st.write(performance_metrics(cross_validation(m,horizon='90 days',period='30 days', initial='730 days'))["mape"].mean())
+        st.code(pd.DataFrame(performance_metrics(cross_validation(m,horizon='90 days',period='30 days', initial='730 days'))))
+     
+        st.subheader("Regressor Coefficients")
+        regressor_coefficients(m)
+        st.dataframe(regressor_coefficients(m))
+       
+       
+       
+        st.subheader(f'Forecast plot')
+        fig1 = plot_plotly(m, forecast,trend=True, changepoints=True)
+        st.plotly_chart(fig1)
+
+
+        st.subheader("Forecast components")
+        fig2 = m.plot_components(forecast)
+        st.write(fig2)
+       
+        ndf = future.query('Brand == "HF" & Marketing_Type == "Paid" & Type == "Forecast" ').copy()
+        ndf['Type'] = 'Forecast_DS'
+        ndf['y'] = ndf['yhat']
+        future = pd.concat([future, ndf], axis=0)
+       
+        future['week'] = future['ds'].dt.isocalendar().week
+        future['year']= future['ds'].dt.year
+        future['month']= future['ds'].dt.month
+        future = future.sort_values(by = ['year','week'], ascending = [True,False], na_position = 'first')
+        fig3 = px.line(future, x="week", y="y", color='year', line_dash= 'Type')
+        st.plotly_chart(fig3)
+       
+        st.subheader("Explain Forecasted Data")
+        #forecast = forecast.reset_index(drop=True, inplace=True)
+        st.dataframe(forecast)
+       
+
+        y = df['y'].copy()
+        X = df[['quarter_calc','month_calc','week_calc','discount_','Marketing_Amount']].copy()
+        model = CatBoostRegressor(iterations=300, learning_rate=0.1, random_seed=123)
+        model.fit(X, y, verbose=False, plot=False)
+        future['catboost_yhat'] = model.predict(future[['quarter_calc','month_calc','week_calc','discount_','Marketing_Amount']])
+       
+        st.subheader("Forecasted Data")
+        st.dataframe(future)
+       
+        temp = future.query(' Type == "Forecast"').copy()
+        temp["conv_forcasted"] = temp["Marketing_Amount"]/temp["yhat"]
+       
+        st.subheader("Total Forecasted Conversion")
+        st.write("Average Forecasted CAC : ", temp['yhat'].mean())
+        st.write("SUM Forcasted Conversions : " ,temp['conv_forcasted'].sum())
+       
+        csv = future.to_csv(index=False).encode('utf-8')
+        st.download_button("Press to Download",csv,"file.csv","text/csv",key='download-csv')
+
+if choice == "MMM CAC Forecast":
+    st.header(f'MMM CAC Forecast')
+    data = df.copy()
+   
+    columns = st.multiselect("Columns:",data.columns)
+    filter = st.radio("Choose by:", ("inclusion","exclusion"))
+   
+    if filter == "exclusion":
+        columns = [col for col in data.columns if col not in columns]
+    else :
+        columns = [col for col in data.columns if col in columns]
+
+    data["ds"] = pd.to_datetime(data["week_date"])
+    data["y"] = data["sea_brand_conv"]
+    df = data[['ds','y']].copy()
+    st.dataframe(df)
+   
+    m = Prophet(growth='linear' , changepoint_range = 0.81, changepoint_prior_scale = 0.2, yearly_seasonality = 20)
+    m.add_country_holidays(country_name='US')
+    m.fit(df)
+    future = m.make_future_dataframe(periods=10)
+    forecast = m.predict(future)
+    add_changepoints_to_plot(m.plot(forecast,figsize=(15, 5)).gca(), m, forecast)
+    fig = m.plot(forecast)
+    a = add_changepoints_to_plot(fig.gca(), m, forecast)
+    import plotly.graph_objects as go
+    fig = go.Figure()
+   
+    st.subheader(f'Forecast plot')
+    fig1 = plot_plotly(m, forecast,trend=True, changepoints=True)
+    st.plotly_chart(fig1)
+
+    st.subheader("Forecast components")
+    fig2 = m.plot_components(forecast)
+    st.write(fig2)
+       
+if choice == "Download":
+    with open('best_model.pkl', 'rb') as f:
+        st.download_button('Download Model', f, file_name="best_model.pkl")
+       
+       
+        ## CAC = Spend/conversion
+
+Many Thanks 
+Gaurav Modi 
+M: (908 265 0151)
